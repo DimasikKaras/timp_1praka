@@ -1,4 +1,5 @@
 # presentation.py
+import getpass
 
 class PresentationLayer:
     def __init__(self, business_logic):
@@ -10,7 +11,7 @@ class PresentationLayer:
         # Если успешно - вызывать self.main_menu()
         while True:
             username = input("Логин: ").strip()
-            password = input("Пароль: ").strip()
+            password = getpass.getpass("Пароль: ").strip()
             if self.bll.login(username, password):
                 print("Вход выполнен.")
                 should_exit = self.main_menu()

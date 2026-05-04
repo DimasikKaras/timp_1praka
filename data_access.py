@@ -1,11 +1,24 @@
 # data_access.py
+from datetime import datetime
 
 class DataAccessLayer:
     def __init__(self):
         # Эмуляция баз данных (словари и списки)
         self.users_db = {
-            "admin": {"password": "123", "role": "Диспетчер"},
-            "user1": {"password": "321", "role": "Сотрудник"}
+            "admin": {
+                "password_hash": (
+                    "99ddc676ef185aff1d8edb972b70aa4886d4b7763fc2bc65c19eba7f9b4c2c12"
+                ),
+                "salt": "admin_salt",
+                "role": "Диспетчер",
+            },
+            "user1": {
+                "password_hash": (
+                    "9fe30c29a826557ae10938708864bfa889c567b5e5063df5dd71ce569469d027"
+                ),
+                "salt": "user1_salt",
+                "role": "Сотрудник",
+            },
         }
         self.sensors_db = {
             "S1": {"type": "Дымовой", "location": "Цех 1", "status": "Норма", "smoke_level": 0},
@@ -38,8 +51,6 @@ class DataAccessLayer:
     # --- Методы для тревог ---
     def add_alarm(self, sensor_id, description):
         # TODO: Создать словарь с данными тревоги (ID, время, описание) и добавить в alarms_db
-        from datetime import datetime
-
         alarm = {
             "sensor_id": sensor_id,
             "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),

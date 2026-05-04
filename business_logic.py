@@ -1,4 +1,6 @@
 # business_logic.py
+import hashlib
+import hmac
 
 class BusinessLogicLayer:
     def __init__(self, data_access):
@@ -10,7 +12,19 @@ class BusinessLogicLayer:
         # TODO: Получить юзера из self.dal. Проверить пароль. 
         # Если ок -> сохранить в self.current_user и вернуть True. Иначе False.
         user = self.dal.get_user(username)
-        if not user or user.get("password") != password:
+        if not user:
+            return False
+        salt = user.get("salt")
+        stored_hash = user.get("password_hash")
+        if not salt or not stored_hash:
+            return False
+        computed_hash = hashlib.pbkdf2_hmac(
+            "sha256",
+            password.encode(),
+            salt.encode(),
+            100000,
+        ).hex()
+        if not hmac.compare_digest(computed_hash, stored_hash):
             return False
         self.current_user = {"login": username, "role": user.get("role")}
         return True
