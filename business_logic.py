@@ -16,13 +16,14 @@ class BusinessLogicLayer:
             return False
         salt = user.get("salt")
         stored_hash = user.get("password_hash")
-        if not salt or not stored_hash:
+        iterations = user.get("iterations", 600_000)
+        if not salt or not stored_hash or not iterations:
             return False
         computed_hash = hashlib.pbkdf2_hmac(
             "sha256",
             password.encode(),
             salt.encode(),
-            100000,
+            iterations,
         ).hex()
         if not hmac.compare_digest(computed_hash, stored_hash):
             return False

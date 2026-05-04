@@ -1,30 +1,36 @@
 # data_access.py
+import hashlib
+import os
 from datetime import datetime
+
+DEFAULT_PBKDF2_ITERATIONS = 600_000
 
 class DataAccessLayer:
     def __init__(self):
         # Эмуляция баз данных (словари и списки)
-        self.users_db = {
-            "admin": {
-                "password_hash": (
-                    "99ddc676ef185aff1d8edb972b70aa4886d4b7763fc2bc65c19eba7f9b4c2c12"
-                ),
-                "salt": "admin_salt",
-                "role": "Диспетчер",
-            },
-            "user1": {
-                "password_hash": (
-                    "9fe30c29a826557ae10938708864bfa889c567b5e5063df5dd71ce569469d027"
-                ),
-                "salt": "user1_salt",
-                "role": "Сотрудник",
-            },
-        }
+        self.users_db = {}
+        self._add_user("admin", "123", "Диспетчер")
+        self._add_user("user1", "321", "Сотрудник")
         self.sensors_db = {
             "S1": {"type": "Дымовой", "location": "Цех 1", "status": "Норма", "smoke_level": 0},
             "S2": {"type": "Тепловой", "location": "Склад", "status": "Норма", "temperature": 20}
         }
         self.alarms_db = [] # Журнал тревог
+
+    def _add_user(self, login, password, role):
+        salt = os.urandom(16).hex()
+        password_hash = hashlib.pbkdf2_hmac(
+            "sha256",
+            password.encode(),
+            salt.encode(),
+            DEFAULT_PBKDF2_ITERATIONS,
+        ).hex()
+        self.users_db[login] = {
+            "password_hash": password_hash,
+            "salt": salt,
+            "iterations": DEFAULT_PBKDF2_ITERATIONS,
+            "role": role,
+        }
 
     # --- Методы для пользователей ---
     def get_user(self, login):
