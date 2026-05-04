@@ -31,7 +31,7 @@ class DataAccessLayer:
             if commit:
                 conn.commit()
             return result
-        except Exception:
+        except psycopg2.DatabaseError:
             conn.rollback()
             raise
         finally:

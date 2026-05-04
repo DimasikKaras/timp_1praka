@@ -75,6 +75,9 @@ class BusinessLogicLayer:
         if self.dal.get_user(username):
             raise ValueError("Пользователь уже существует.")
         user_count = self.dal.get_user_count()
+        if user_count > 0 and not self.current_user:
+            logging.warning("Попытка регистрации без входа для пользователя %s.", username)
+            raise AccessDeniedError("Сначала выполните вход диспетчера.")
         if user_count > 0 and self.get_current_role() != ROLE_DISPATCHER:
             logging.warning("Отказ в доступе при регистрации пользователя %s.", username)
             raise AccessDeniedError("Регистрация доступна только диспетчеру.")

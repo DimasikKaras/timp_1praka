@@ -12,7 +12,7 @@ DB_PASSWORD = os.getenv("DB_PASSWORD", "postgres")
 HASH_SECRET = os.getenv("HASH_SECRET")
 LOG_FILE = os.getenv("LOG_FILE", "app.log")
 
-if not HASH_SECRET or HASH_SECRET.lower() in {"change_me", "replace_me"}:
+if not HASH_SECRET or HASH_SECRET.strip().lower() in {"change_me", "replace_me"}:
     raise RuntimeError(
         "HASH_SECRET должен быть задан в .env и отличаться от change_me/replace_me"
     )

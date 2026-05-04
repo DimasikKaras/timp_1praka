@@ -39,12 +39,14 @@ class PresentationLayer:
 
     def main_menu(self):
         while True:
+            is_dispatcher = self.bll.get_current_role() == ROLE_DISPATCHER
             print("\nМеню:")
             print("1. Список датчиков")
             print("2. Журнал тревог")
             print("3. Изменить показания датчика (Эмуляция)")
-            print("4. Регистрация (только диспетчер)")
-            print("5. Журнал событий (только диспетчер)")
+            if is_dispatcher:
+                print("4. Регистрация (только диспетчер)")
+                print("5. Журнал событий (только диспетчер)")
             print("0. Выход")
             choice = input("Выберите пункт: ").strip()
             if choice == "1":
@@ -53,9 +55,9 @@ class PresentationLayer:
                 self.show_alarms()
             elif choice == "3":
                 self.simulate_reading()
-            elif choice == "4":
+            elif choice == "4" and is_dispatcher:
                 self.register_user()
-            elif choice == "5":
+            elif choice == "5" and is_dispatcher:
                 self.show_logs()
             elif choice == "0":
                 return True
