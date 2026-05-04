@@ -27,4 +27,7 @@ if __name__ == "__main__":
     logic_layer.start_monitoring()
 
     # Запускаем интерфейс
-    ui_layer.start()
+    try:
+        ui_layer.start()
+    finally:
+        logic_layer.stop_monitoring()

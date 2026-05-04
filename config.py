@@ -12,7 +12,7 @@ DB_PASSWORD = os.getenv("DB_PASSWORD", "postgres")
 HASH_SECRET = os.getenv("HASH_SECRET")
 LOG_FILE = os.getenv("LOG_FILE", "app.log")
 
-if not HASH_SECRET:
+if not HASH_SECRET or not HASH_SECRET.strip():
     raise RuntimeError("HASH_SECRET должен быть задан в .env")
 
 normalized_secret = HASH_SECRET.strip()

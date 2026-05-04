@@ -34,7 +34,7 @@ class DataAccessLayer:
                 conn.commit()
             return result
         except psycopg2.DatabaseError as exc:
-            logging.exception("Ошибка базы данных: %s", exc)
+            logging.exception("Ошибка базы данных при выполнении запроса: %s", query)
             conn.rollback()
             raise
         finally:
@@ -141,7 +141,6 @@ class DataAccessLayer:
                 "temperature": row["temperature"],
             }
         return sensors
-
 
     def update_sensor_data(self, sensor_id, status, value):
         sensor = self.execute_query(

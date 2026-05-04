@@ -13,7 +13,7 @@ SENSOR_TYPE_HEAT = "Тепловой"
 SENSOR_TYPE_SMOKE = "Дымовой"
 HEAT_THRESHOLD = 70
 SMOKE_THRESHOLD = 15
-PBKDF2_ITERATIONS = 600_000
+PBKDF2_ITERATIONS = 600000
 
 
 class AccessDeniedError(Exception):
@@ -76,10 +76,10 @@ class BusinessLogicLayer:
             raise ValueError("Пользователь уже существует.")
         user_count = self.dal.get_user_count()
         if user_count > 0 and not self.current_user:
-            logging.warning("Попытка регистрации без входа для пользователя %s.", username)
+            logging.warning("Попытка регистрации без входа.")
             raise AccessDeniedError("Сначала выполните вход диспетчера.")
         if user_count > 0 and self.get_current_role() != ROLE_DISPATCHER:
-            logging.warning("Отказ в доступе при регистрации пользователя %s.", username)
+            logging.warning("Отказ в доступе при регистрации.")
             raise AccessDeniedError("Регистрация доступна только диспетчеру.")
         if user_count == 0 and role != ROLE_DISPATCHER:
             raise ValueError("Первый пользователь должен быть диспетчером.")
