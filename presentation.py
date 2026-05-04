@@ -85,7 +85,7 @@ class PresentationLayer:
         # Передать это в self.bll.process_sensor_reading(...)
         # Распечатать ответ (Успешно или Ошибка прав доступа/превышение)
         sensor_id = input("Введите ID датчика: ").strip()
-        raw_value = input("Введите новое значение: ").strip()
+        raw_value = input("Введите новое значение (число, можно с дробной частью): ").strip()
         try:
             new_value = float(raw_value)
         except ValueError:

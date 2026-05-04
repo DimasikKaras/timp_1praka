@@ -4,6 +4,12 @@ import hmac
 
 from data_access import DEFAULT_PBKDF2_ITERATIONS
 
+ROLE_DISPATCHER = "Диспетчер"
+SENSOR_TYPE_HEAT = "Тепловой"
+SENSOR_TYPE_SMOKE = "Дымовой"
+HEAT_THRESHOLD = 70
+SMOKE_THRESHOLD = 15
+
 class BusinessLogicLayer:
     def __init__(self, data_access):
         self.dal = data_access # Ссылка на слой данных
@@ -54,7 +60,7 @@ class BusinessLogicLayer:
     def process_sensor_reading(self, sensor_id, new_value):
         # TODO: ПРОВЕРКА ПРАВ! Разрешить менять показания только "Диспетчеру".
         # Если прав нет, вернуть ошибку.
-        if self.get_current_role() != "Диспетчер":
+        if self.get_current_role() != ROLE_DISPATCHER:
             return "Ошибка прав доступа."
         
         # TODO: ЛОГИКА АНАЛИЗА! 
@@ -68,9 +74,9 @@ class BusinessLogicLayer:
             return "Датчик не найден."
         sensor_type = sensor.get("type")
         status = "Норма"
-        if sensor_type == "Тепловой" and new_value > 70:
+        if sensor_type == SENSOR_TYPE_HEAT and new_value > HEAT_THRESHOLD:
             status = "ПОЖАР"
-        elif sensor_type == "Дымовой" and new_value > 15:
+        elif sensor_type == SENSOR_TYPE_SMOKE and new_value > SMOKE_THRESHOLD:
             status = "ПОЖАР"
         
         # TODO: Если статус стал "ПОЖАР", вызвать self.dal.add_alarm(...)
