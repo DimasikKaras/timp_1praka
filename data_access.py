@@ -1,71 +1,193 @@
-# data_access.py
-import hashlib
-import os
-from datetime import datetime
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
-DEFAULT_PBKDF2_ITERATIONS = 600_000
+from config import DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER
+
 
 class DataAccessLayer:
     def __init__(self):
-        # Эмуляция баз данных (словари и списки)
-        self.users_db = {}
-        self._add_user("admin", "Admin#2024", "Диспетчер")
-        self._add_user("user1", "User1#2024", "Сотрудник")
-        self.sensors_db = {
-            "S1": {"type": "Дымовой", "location": "Цех 1", "status": "Норма", "smoke_level": 0},
-            "S2": {"type": "Тепловой", "location": "Склад", "status": "Норма", "temperature": 20}
+        self.connection_params = {
+            "host": DB_HOST,
+            "port": DB_PORT,
+            "dbname": DB_NAME,
+            "user": DB_USER,
+            "password": DB_PASSWORD,
         }
-        self.alarms_db = [] # Журнал тревог
+        self._ensure_schema()
 
-    def _add_user(self, login, password, role):
-        salt_bytes = os.urandom(16)
-        salt_hex = salt_bytes.hex()
-        password_hash = hashlib.pbkdf2_hmac(
-            "sha256",
-            password.encode(),
-            salt_bytes,
-            DEFAULT_PBKDF2_ITERATIONS,
-        ).hex()
-        self.users_db[login] = {
-            "password_hash": password_hash,
-            "salt": salt_hex,
-            "iterations": DEFAULT_PBKDF2_ITERATIONS,
-            "role": role,
-        }
+    def connect(self):
+        return psycopg2.connect(**self.connection_params)
+
+    def execute_query(self, query, params=None, fetchone=False, fetchall=False):
+        with self.connect() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(query, params)
+                if fetchone:
+                    return cursor.fetchone()
+                if fetchall:
+                    return cursor.fetchall()
+        return None
+
+    def _ensure_schema(self):
+        self.execute_query(
+            """
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                salt TEXT NOT NULL,
+                iterations INTEGER NOT NULL,
+                role TEXT NOT NULL
+            )
+            """
+        )
+        self.execute_query(
+            """
+            CREATE TABLE IF NOT EXISTS sensors (
+                sensor_id TEXT PRIMARY KEY,
+                type TEXT NOT NULL,
+                location TEXT NOT NULL,
+                status TEXT NOT NULL,
+                smoke_level DOUBLE PRECISION,
+                temperature DOUBLE PRECISION
+            )
+            """
+        )
+        self.execute_query(
+            """
+            CREATE TABLE IF NOT EXISTS alarms (
+                id SERIAL PRIMARY KEY,
+                sensor_id TEXT REFERENCES sensors(sensor_id),
+                created_at TIMESTAMP NOT NULL,
+                description TEXT NOT NULL
+            )
+            """
+        )
+        if not self.get_all_sensors():
+            self.execute_query(
+                """
+                INSERT INTO sensors (sensor_id, type, location, status, smoke_level, temperature)
+                VALUES
+                    (%s, %s, %s, %s, %s, %s),
+                    (%s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    "S1",
+                    "Дымовой",
+                    "Цех 1",
+                    "Норма",
+                    0,
+                    None,
+                    "S2",
+                    "Тепловой",
+                    "Склад",
+                    "Норма",
+                    None,
+                    20,
+                ),
+            )
 
     # --- Методы для пользователей ---
     def get_user(self, login):
-        # TODO: Вернуть пользователя по логину или None
-        return self.users_db.get(login)
+        return self.execute_query(
+            "SELECT username, password_hash, salt, iterations, role FROM users WHERE username = %s",
+            (login,),
+            fetchone=True,
+        )
+
+    def add_user(self, login, password_hash, salt, iterations, role):
+        self.execute_query(
+            """
+            INSERT INTO users (username, password_hash, salt, iterations, role)
+            VALUES (%s, %s, %s, %s, %s)
+            """,
+            (login, password_hash, salt, iterations, role),
+        )
 
     # --- Методы для датчиков ---
     def get_all_sensors(self):
-        # TODO: Вернуть весь словарь датчиков
-        return self.sensors_db
+        rows = self.execute_query(
+            """
+            SELECT sensor_id, type, location, status, smoke_level, temperature
+            FROM sensors
+            """,
+            fetchall=True,
+        )
+        sensors = {}
+        for row in rows or []:
+            sensors[row["sensor_id"]] = {
+                "type": row["type"],
+                "location": row["location"],
+                "status": row["status"],
+                "smoke_level": row["smoke_level"],
+                "temperature": row["temperature"],
+            }
+        return sensors
 
     def update_sensor_data(self, sensor_id, status, value):
-        # TODO: Обновить статус и значение (температуру/дым) конкретного датчика
-        sensor = self.sensors_db.get(sensor_id)
+        sensor = self.execute_query(
+            "SELECT type FROM sensors WHERE sensor_id = %s",
+            (sensor_id,),
+            fetchone=True,
+        )
         if not sensor:
             return False
-        sensor["status"] = status
-        if sensor.get("type") == "Дымовой":
-            sensor["smoke_level"] = value
-        elif sensor.get("type") == "Тепловой":
-            sensor["temperature"] = value
+        sensor_type = sensor["type"]
+        if sensor_type == "Дымовой":
+            self.execute_query(
+                """
+                UPDATE sensors
+                SET status = %s, smoke_level = %s
+                WHERE sensor_id = %s
+                """,
+                (status, value, sensor_id),
+            )
+        else:
+            self.execute_query(
+                """
+                UPDATE sensors
+                SET status = %s, temperature = %s
+                WHERE sensor_id = %s
+                """,
+                (status, value, sensor_id),
+            )
         return True
 
     # --- Методы для тревог ---
     def add_alarm(self, sensor_id, description):
-        # TODO: Создать словарь с данными тревоги (ID, время, описание) и добавить в alarms_db
-        alarm = {
-            "sensor_id": sensor_id,
-            "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "description": description,
+        row = self.execute_query(
+            """
+            INSERT INTO alarms (sensor_id, created_at, description)
+            VALUES (%s, NOW(), %s)
+            RETURNING sensor_id, created_at, description
+            """,
+            (sensor_id, description),
+            fetchone=True,
+        )
+        if not row:
+            return None
+        return {
+            "sensor_id": row["sensor_id"],
+            "time": row["created_at"].strftime("%Y-%m-%d %H:%M:%S"),
+            "description": row["description"],
         }
-        self.alarms_db.append(alarm)
-        return alarm
 
     def get_alarms(self):
-        # TODO: Вернуть список всех тревог
-        return self.alarms_db
+        rows = self.execute_query(
+            """
+            SELECT sensor_id, created_at, description
+            FROM alarms
+            ORDER BY created_at DESC
+            """,
+            fetchall=True,
+        )
+        alarms = []
+        for row in rows or []:
+            alarms.append(
+                {
+                    "sensor_id": row["sensor_id"],
+                    "time": row["created_at"].strftime("%Y-%m-%d %H:%M:%S"),
+                    "description": row["description"],
+                }
+            )
+        return alarms

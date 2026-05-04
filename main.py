@@ -1,10 +1,19 @@
 # main.py
-from data_access import DataAccessLayer
+import logging
+
 from business_logic import BusinessLogicLayer
+from config import LOG_FILE
+from data_access import DataAccessLayer
 from presentation import PresentationLayer
 
 if __name__ == "__main__":
     # Собираем слои, как конструктор Lego:
+    logging.basicConfig(
+        filename=LOG_FILE,
+        level=logging.INFO,
+        format="%(asctime)s | %(levelname)s | %(message)s",
+    )
+
     # База данных не зависит ни от кого
     db_layer = DataAccessLayer()
     
@@ -14,5 +23,8 @@ if __name__ == "__main__":
     # Интерфейсу нужна бизнес-логика
     ui_layer = PresentationLayer(logic_layer)
     
+    # Запускаем фоновый мониторинг
+    logic_layer.start_monitoring()
+
     # Запускаем интерфейс
     ui_layer.start()
