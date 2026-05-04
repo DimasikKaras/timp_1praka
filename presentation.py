@@ -43,8 +43,8 @@ class PresentationLayer:
             print("1. Список датчиков")
             print("2. Журнал тревог")
             print("3. Изменить показания датчика (Эмуляция)")
-            print("4. Регистрация")
-            print("5. Журнал событий")
+            print("4. Регистрация (только диспетчер)")
+            print("5. Журнал событий (только диспетчер)")
             print("0. Выход")
             choice = input("Выберите пункт: ").strip()
             if choice == "1":
@@ -119,7 +119,11 @@ class PresentationLayer:
             )
 
     def show_logs(self):
-        logs = self.bll.get_logs()
+        try:
+            logs = self.bll.get_logs()
+        except AccessDeniedError as exc:
+            print(f"Ошибка прав доступа: {exc}")
+            return
         if not logs:
             print("Записей в журнале нет.")
             return

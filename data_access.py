@@ -30,9 +30,10 @@ class DataAccessLayer:
                     result = cursor.fetchall()
             if commit:
                 conn.commit()
-            else:
-                conn.rollback()
             return result
+        except Exception:
+            conn.rollback()
+            raise
         finally:
             conn.close()
 
@@ -78,24 +79,17 @@ class DataAccessLayer:
             self.execute_query(
                 """
                 INSERT INTO sensors (sensor_id, type, location, status, smoke_level, temperature)
-                VALUES
-                    (%s, %s, %s, %s, %s, %s),
-                    (%s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s)
                 """,
-                (
-                    "S1",
-                    "Дымовой",
-                    "Цех 1",
-                    "Норма",
-                    0,
-                    None,
-                    "S2",
-                    "Тепловой",
-                    "Склад",
-                    "Норма",
-                    None,
-                    20,
-                ),
+                ("S1", "Дымовой", "Цех 1", "Норма", 0, None),
+                commit=True,
+            )
+            self.execute_query(
+                """
+                INSERT INTO sensors (sensor_id, type, location, status, smoke_level, temperature)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                """,
+                ("S2", "Тепловой", "Склад", "Норма", None, 20),
                 commit=True,
             )
 

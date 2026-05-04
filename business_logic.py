@@ -88,6 +88,10 @@ class BusinessLogicLayer:
         logging.info("Зарегистрирован пользователь %s с ролью %s.", username, role)
 
     def get_logs(self, limit=50):
+        if self.get_current_role() != ROLE_DISPATCHER:
+            user_login = self.current_user.get("login") if self.current_user else "неизвестный"
+            logging.warning("Отказ в доступе к журналу для пользователя %s.", user_login)
+            raise AccessDeniedError("Доступ к журналу доступен только диспетчеру.")
         try:
             with open(LOG_FILE, "r", encoding="utf-8") as log_file:
                 lines = log_file.readlines()

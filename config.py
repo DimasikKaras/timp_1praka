@@ -13,4 +13,6 @@ HASH_SECRET = os.getenv("HASH_SECRET")
 LOG_FILE = os.getenv("LOG_FILE", "app.log")
 
 if not HASH_SECRET or HASH_SECRET.lower() in {"change_me", "replace_me"}:
-    raise RuntimeError("HASH_SECRET должен быть задан в .env и не быть шаблонным значением")
+    raise RuntimeError(
+        "HASH_SECRET должен быть задан в .env и отличаться от change_me/replace_me"
+    )
