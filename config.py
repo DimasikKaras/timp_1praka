@@ -12,7 +12,13 @@ DB_PASSWORD = os.getenv("DB_PASSWORD", "postgres")
 HASH_SECRET = os.getenv("HASH_SECRET")
 LOG_FILE = os.getenv("LOG_FILE", "app.log")
 
-if not HASH_SECRET or HASH_SECRET.strip().lower() in {"change_me", "replace_me"}:
+if not HASH_SECRET:
+    raise RuntimeError("HASH_SECRET должен быть задан в .env")
+
+normalized_secret = HASH_SECRET.strip()
+if normalized_secret.lower() in {"change_me", "replace_me"}:
     raise RuntimeError(
         "HASH_SECRET должен быть задан в .env и отличаться от change_me/replace_me"
     )
+if len(normalized_secret) < 32:
+    raise RuntimeError("HASH_SECRET должен быть длиной не менее 32 символов")

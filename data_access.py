@@ -1,3 +1,5 @@
+import logging
+
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
@@ -31,7 +33,8 @@ class DataAccessLayer:
             if commit:
                 conn.commit()
             return result
-        except psycopg2.DatabaseError:
+        except psycopg2.DatabaseError as exc:
+            logging.exception("Ошибка базы данных: %s", exc)
             conn.rollback()
             raise
         finally:
@@ -75,23 +78,24 @@ class DataAccessLayer:
             """,
             commit=True,
         )
-        if not self.has_sensors():
-            self.execute_query(
-                """
-                INSERT INTO sensors (sensor_id, type, location, status, smoke_level, temperature)
-                VALUES (%s, %s, %s, %s, %s, %s)
-                """,
-                ("S1", "Дымовой", "Цех 1", "Норма", 0, None),
-                commit=True,
-            )
-            self.execute_query(
-                """
-                INSERT INTO sensors (sensor_id, type, location, status, smoke_level, temperature)
-                VALUES (%s, %s, %s, %s, %s, %s)
-                """,
-                ("S2", "Тепловой", "Склад", "Норма", None, 20),
-                commit=True,
-            )
+        self.execute_query(
+            """
+            INSERT INTO sensors (sensor_id, type, location, status, smoke_level, temperature)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            ON CONFLICT (sensor_id) DO NOTHING
+            """,
+            ("S1", "Дымовой", "Цех 1", "Норма", 0, None),
+            commit=True,
+        )
+        self.execute_query(
+            """
+            INSERT INTO sensors (sensor_id, type, location, status, smoke_level, temperature)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            ON CONFLICT (sensor_id) DO NOTHING
+            """,
+            ("S2", "Тепловой", "Склад", "Норма", None, 20),
+            commit=True,
+        )
 
     # --- Методы для пользователей ---
     def get_user(self, login):
@@ -138,12 +142,6 @@ class DataAccessLayer:
             }
         return sensors
 
-    def get_sensor_count(self):
-        row = self.execute_query(
-            "SELECT COUNT(*) AS count FROM sensors",
-            fetchone=True,
-        )
-        return row["count"] if row else 0
 
     def update_sensor_data(self, sensor_id, status, value):
         sensor = self.execute_query(
@@ -215,10 +213,3 @@ class DataAccessLayer:
                 }
             )
         return alarms
-
-    def has_sensors(self):
-        row = self.execute_query(
-            "SELECT 1 FROM sensors LIMIT 1",
-            fetchone=True,
-        )
-        return row is not None
