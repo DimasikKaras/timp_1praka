@@ -31,8 +31,6 @@ class BusinessLogicLayer:
             salt_bytes,
             iterations,
         ).hex()
-        if len(stored_hash) != len(computed_hash):
-            return False
         if not hmac.compare_digest(computed_hash, stored_hash):
             return False
         self.current_user = {"login": username, "role": user.get("role")}
