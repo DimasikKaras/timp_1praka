@@ -16,22 +16,38 @@ class DataAccessLayer:
     # --- Методы для пользователей ---
     def get_user(self, login):
         # TODO: Вернуть пользователя по логину или None
-        pass
+        return self.users_db.get(login)
 
     # --- Методы для датчиков ---
     def get_all_sensors(self):
         # TODO: Вернуть весь словарь датчиков
-        pass
+        return self.sensors_db
 
     def update_sensor_data(self, sensor_id, status, value):
         # TODO: Обновить статус и значение (температуру/дым) конкретного датчика
-        pass
+        sensor = self.sensors_db.get(sensor_id)
+        if not sensor:
+            return False
+        sensor["status"] = status
+        if sensor.get("type") == "Дымовой":
+            sensor["smoke_level"] = value
+        elif sensor.get("type") == "Тепловой":
+            sensor["temperature"] = value
+        return True
 
     # --- Методы для тревог ---
     def add_alarm(self, sensor_id, description):
         # TODO: Создать словарь с данными тревоги (ID, время, описание) и добавить в alarms_db
-        pass
+        from datetime import datetime
+
+        alarm = {
+            "sensor_id": sensor_id,
+            "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "description": description,
+        }
+        self.alarms_db.append(alarm)
+        return alarm
 
     def get_alarms(self):
         # TODO: Вернуть список всех тревог
-        pass
+        return self.alarms_db
