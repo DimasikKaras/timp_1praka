@@ -133,7 +133,7 @@ class PresentationLayer:
         try:
             new_value = float(raw_value)
         except ValueError:
-            print("Некорректное значение. Пожалуйста, введите число.")
+            print("Некорректное значение. Введите число, допускается дробная часть.")
             return
         try:
             result = self.bll.process_sensor_reading(sensor_id, new_value)

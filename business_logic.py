@@ -109,7 +109,8 @@ class BusinessLogicLayer:
 
     def process_sensor_reading(self, sensor_id, new_value):
         if self.get_current_role() != ROLE_DISPATCHER:
-            logging.warning("Отказ в доступе для пользователя %s.", self.current_user)
+            user_login = self.current_user.get("login") if self.current_user else "неизвестный"
+            logging.warning("Отказ в доступе для пользователя %s.", user_login)
             raise AccessDeniedError("Недостаточно прав для изменения показаний.")
 
         sensors = self.dal.get_all_sensors()

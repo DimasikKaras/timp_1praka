@@ -18,8 +18,9 @@ class DataAccessLayer:
     def connect(self):
         return psycopg2.connect(**self.connection_params)
 
-    def execute_query(self, query, params=None, fetchone=False, fetchall=False):
-        with self.connect() as conn:
+    def execute_query(self, query, params=None, fetchone=False, fetchall=False, commit=False):
+        conn = self.connect()
+        try:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
                 cursor.execute(query, params)
                 result = None
@@ -27,8 +28,13 @@ class DataAccessLayer:
                     result = cursor.fetchone()
                 elif fetchall:
                     result = cursor.fetchall()
-            conn.commit()
-        return result
+            if commit:
+                conn.commit()
+            else:
+                conn.rollback()
+            return result
+        finally:
+            conn.close()
 
     def _ensure_schema(self):
         self.execute_query(
@@ -41,7 +47,8 @@ class DataAccessLayer:
                 iterations INTEGER NOT NULL,
                 role TEXT NOT NULL
             )
-            """
+            """,
+            commit=True,
         )
         self.execute_query(
             """
@@ -53,7 +60,8 @@ class DataAccessLayer:
                 smoke_level DOUBLE PRECISION,
                 temperature DOUBLE PRECISION
             )
-            """
+            """,
+            commit=True,
         )
         self.execute_query(
             """
@@ -63,9 +71,10 @@ class DataAccessLayer:
                 created_at TIMESTAMP NOT NULL,
                 description TEXT NOT NULL
             )
-            """
+            """,
+            commit=True,
         )
-        if self.get_sensor_count() == 0:
+        if not self.has_sensors():
             self.execute_query(
                 """
                 INSERT INTO sensors (sensor_id, type, location, status, smoke_level, temperature)
@@ -87,6 +96,7 @@ class DataAccessLayer:
                     None,
                     20,
                 ),
+                commit=True,
             )
 
     # --- Методы для пользователей ---
@@ -104,6 +114,7 @@ class DataAccessLayer:
             VALUES (%s, %s, %s, %s, %s)
             """,
             (login, password_hash, salt, iterations, role),
+            commit=True,
         )
 
     def get_user_count(self):
@@ -157,6 +168,7 @@ class DataAccessLayer:
                 WHERE sensor_id = %s
                 """,
                 (status, value, sensor_id),
+                commit=True,
             )
         else:
             self.execute_query(
@@ -166,6 +178,7 @@ class DataAccessLayer:
                 WHERE sensor_id = %s
                 """,
                 (status, value, sensor_id),
+                commit=True,
             )
         return True
 
@@ -179,6 +192,7 @@ class DataAccessLayer:
             """,
             (sensor_id, description),
             fetchone=True,
+            commit=True,
         )
         if not row:
             return None
@@ -207,3 +221,10 @@ class DataAccessLayer:
                 }
             )
         return alarms
+
+    def has_sensors(self):
+        row = self.execute_query(
+            "SELECT 1 FROM sensors LIMIT 1",
+            fetchone=True,
+        )
+        return row is not None
