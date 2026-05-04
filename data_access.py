@@ -18,16 +18,17 @@ class DataAccessLayer:
         self.alarms_db = [] # Журнал тревог
 
     def _add_user(self, login, password, role):
-        salt = os.urandom(16).hex()
+        salt_bytes = os.urandom(16)
+        salt_hex = salt_bytes.hex()
         password_hash = hashlib.pbkdf2_hmac(
             "sha256",
             password.encode(),
-            salt.encode(),
+            salt_bytes,
             DEFAULT_PBKDF2_ITERATIONS,
         ).hex()
         self.users_db[login] = {
             "password_hash": password_hash,
-            "salt": salt,
+            "salt": salt_hex,
             "iterations": DEFAULT_PBKDF2_ITERATIONS,
             "role": role,
         }

@@ -21,10 +21,14 @@ class BusinessLogicLayer:
         iterations = user.get("iterations", DEFAULT_PBKDF2_ITERATIONS)
         if not salt or not stored_hash or not iterations:
             return False
+        try:
+            salt_bytes = bytes.fromhex(salt)
+        except ValueError:
+            return False
         computed_hash = hashlib.pbkdf2_hmac(
             "sha256",
             password.encode(),
-            salt.encode(),
+            salt_bytes,
             iterations,
         ).hex()
         if len(stored_hash) != len(computed_hash):
