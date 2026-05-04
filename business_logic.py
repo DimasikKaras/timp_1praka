@@ -2,6 +2,8 @@
 import hashlib
 import hmac
 
+from data_access import DEFAULT_PBKDF2_ITERATIONS
+
 class BusinessLogicLayer:
     def __init__(self, data_access):
         self.dal = data_access # Ссылка на слой данных
@@ -16,7 +18,7 @@ class BusinessLogicLayer:
             return False
         salt = user.get("salt")
         stored_hash = user.get("password_hash")
-        iterations = user.get("iterations", 600_000)
+        iterations = user.get("iterations", DEFAULT_PBKDF2_ITERATIONS)
         if not salt or not stored_hash or not iterations:
             return False
         computed_hash = hashlib.pbkdf2_hmac(
@@ -25,6 +27,8 @@ class BusinessLogicLayer:
             salt.encode(),
             iterations,
         ).hex()
+        if len(stored_hash) != len(computed_hash):
+            return False
         if not hmac.compare_digest(computed_hash, stored_hash):
             return False
         self.current_user = {"login": username, "role": user.get("role")}

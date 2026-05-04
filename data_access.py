@@ -9,8 +9,8 @@ class DataAccessLayer:
     def __init__(self):
         # Эмуляция баз данных (словари и списки)
         self.users_db = {}
-        self._add_user("admin", "123", "Диспетчер")
-        self._add_user("user1", "321", "Сотрудник")
+        self._add_user("admin", "Admin#2024", "Диспетчер")
+        self._add_user("user1", "User1#2024", "Сотрудник")
         self.sensors_db = {
             "S1": {"type": "Дымовой", "location": "Цех 1", "status": "Норма", "smoke_level": 0},
             "S2": {"type": "Тепловой", "location": "Склад", "status": "Норма", "temperature": 20}
