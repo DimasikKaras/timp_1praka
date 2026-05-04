@@ -13,7 +13,7 @@ SENSOR_TYPE_HEAT = "Тепловой"
 SENSOR_TYPE_SMOKE = "Дымовой"
 HEAT_THRESHOLD = 70
 SMOKE_THRESHOLD = 15
-DEFAULT_PBKDF2_ITERATIONS = 600_000
+PBKDF2_ITERATIONS = 600_000
 
 
 class AccessDeniedError(Exception):
@@ -44,7 +44,7 @@ class BusinessLogicLayer:
             return False
         salt = user.get("salt")
         stored_hash = user.get("password_hash")
-        iterations = user.get("iterations", DEFAULT_PBKDF2_ITERATIONS)
+        iterations = user.get("iterations", PBKDF2_ITERATIONS)
         if not salt or not stored_hash or not iterations:
             logging.error("Некорректные данные пользователя %s.", username)
             return False
@@ -74,9 +74,15 @@ class BusinessLogicLayer:
             raise ValueError("Недопустимая роль.")
         if self.dal.get_user(username):
             raise ValueError("Пользователь уже существует.")
+        user_count = self.dal.get_user_count()
+        if user_count > 0 and self.get_current_role() != ROLE_DISPATCHER:
+            logging.warning("Отказ в доступе при регистрации пользователя %s.", username)
+            raise AccessDeniedError("Регистрация доступна только диспетчеру.")
+        if user_count == 0 and role != ROLE_DISPATCHER:
+            raise ValueError("Первый пользователь должен быть диспетчером.")
         salt_bytes = os.urandom(16)
         salt_hex = salt_bytes.hex()
-        iterations = DEFAULT_PBKDF2_ITERATIONS
+        iterations = PBKDF2_ITERATIONS
         password_hash = self._hash_password(password, salt_bytes, iterations)
         self.dal.add_user(username, password_hash, salt_hex, iterations, role)
         logging.info("Зарегистрирован пользователь %s с ролью %s.", username, role)
@@ -156,6 +162,7 @@ class BusinessLogicLayer:
     def _check_sensors(self):
         sensors = self.dal.get_all_sensors()
         for sensor_id, sensor in sensors.items():
+            previous_status = sensor.get("status")
             value = (
                 sensor.get("temperature")
                 if sensor.get("type") == SENSOR_TYPE_HEAT
@@ -164,9 +171,9 @@ class BusinessLogicLayer:
             if value is None:
                 continue
             status = self._evaluate_sensor_status(sensor, value)
-            if status != sensor.get("status"):
+            if status != previous_status:
                 self.dal.update_sensor_data(sensor_id, status, value)
-            if status == "ПОЖАР" and sensor.get("status") != "ПОЖАР":
+            if status == "ПОЖАР" and previous_status != "ПОЖАР":
                 description = (
                     f"{sensor_id} ({sensor.get('location')}): "
                     f"{sensor.get('type')} датчик, значение {value}"

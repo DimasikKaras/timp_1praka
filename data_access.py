@@ -22,11 +22,13 @@ class DataAccessLayer:
         with self.connect() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
                 cursor.execute(query, params)
+                result = None
                 if fetchone:
-                    return cursor.fetchone()
-                if fetchall:
-                    return cursor.fetchall()
-        return None
+                    result = cursor.fetchone()
+                elif fetchall:
+                    result = cursor.fetchall()
+            conn.commit()
+        return result
 
     def _ensure_schema(self):
         self.execute_query(
@@ -63,7 +65,7 @@ class DataAccessLayer:
             )
             """
         )
-        if not self.get_all_sensors():
+        if self.get_sensor_count() == 0:
             self.execute_query(
                 """
                 INSERT INTO sensors (sensor_id, type, location, status, smoke_level, temperature)
@@ -104,6 +106,13 @@ class DataAccessLayer:
             (login, password_hash, salt, iterations, role),
         )
 
+    def get_user_count(self):
+        row = self.execute_query(
+            "SELECT COUNT(*) AS count FROM users",
+            fetchone=True,
+        )
+        return row["count"] if row else 0
+
     # --- Методы для датчиков ---
     def get_all_sensors(self):
         rows = self.execute_query(
@@ -123,6 +132,13 @@ class DataAccessLayer:
                 "temperature": row["temperature"],
             }
         return sensors
+
+    def get_sensor_count(self):
+        row = self.execute_query(
+            "SELECT COUNT(*) AS count FROM sensors",
+            fetchone=True,
+        )
+        return row["count"] if row else 0
 
     def update_sensor_data(self, sensor_id, status, value):
         sensor = self.execute_query(

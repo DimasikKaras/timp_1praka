@@ -79,6 +79,9 @@ class PresentationLayer:
             return
         try:
             self.bll.register_user(username, password, role)
+        except AccessDeniedError as exc:
+            print(f"Ошибка прав доступа: {exc}")
+            return
         except ValueError as exc:
             print(f"Ошибка регистрации: {exc}")
             return
